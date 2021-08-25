@@ -1,0 +1,90 @@
+//https://sudonull.com/post/152688-Unevenly-running-hours
+
+
+#include <avr/io.h>
+#include <avr/sleep.h>
+#include <avr/interrupt.h>
+
+// таблица длительностей интервалов (в тиках)
+const uint8_t intervals [] __attribute__ ((progmem)) =
+{	
+	0x01, 0x05, 0x04, 0x04,
+	0x05, 0x09, 0x04, 0x02,
+	0x09, 0x02, 0x02, 0x07,
+	0x02, 0x03, 0x03, 0x03,
+
+	0x03, 0x05, 0x05, 0x07,
+	0x04, 0x06, 0x07, 0x01,
+	0x02, 0x01, 0x05, 0x02,
+	0x03, 0x03, 0x0C, 0x04,
+
+	0x06, 0x02, 0x01, 0x0D,
+	0x02, 0x03, 0x04, 0x03,
+	0x01, 0x01, 0x06, 0x04,
+	0x06, 0x04, 0x02, 0x06,
+
+	0x02, 0x04, 0x06, 0x01,
+	0x07, 0x04, 0x02, 0x02,
+	0x01, 0x05, 0x03, 0x04
+};
+
+ISR (TIM0_COMPA_vect)	// Прерывание по таймеру
+{
+static uint8_t polarity =0;
+static uint8_t tick_no =0;
+static uint8_t next_tick_no =0;
+static uint8_t interval_no =0;
+
+if (tick_no == next_tick_no)
+{
+
+	if (polarity)
+	{	// положительный импульс
+		PORTB |= (1 << 2)|(1 << 4);
+	}
+	else
+	{	// отрицательный импульс
+		PORTB |= (1 << 0)|(1 << 1);
+	}
+	polarity ^= 0x01;
+	
+	if (interval_no < 59)
+	{
+		next_tick_no += intervals [interval_no];
+		interval_no++;
+	}
+	else
+	{	// началась новая минута
+		next_tick_no = 0;
+		interval_no = 0;
+	}
+}
+
+if (tick_no < 239)
+	tick_no ++;
+else
+	tick_no = 0;
+}
+
+ISR (TIM0_COMPB_vect)	// Второе прерывание, через 100 мс после первого
+{	// отключаем двигатель
+	PORTB &= ~((1 << 0)|(1 << 1)|(1 << 2)|(1 << 4));
+}
+
+void main(void) __attribute__((noreturn));
+
+void main(void)
+{
+	DDRB |= (1 << 0)|(1 << 1)|(1 << 2)|(1 << 4);
+	TCCR0A = (1 << WGM01); 	// режим работы таймера "сброс по совпадению"
+	TCCR0B = (1 << CS02); 	// предделитель таймера 1/256	
+	OCR0A =  0x1F;  		// Верхняя граница счета
+// 32768 / 256 / 0x20 = 4 Hz - частота следования прерываний
+	OCR0B =  0x0С;  // примерно 100 мс от сброса счетчика до второго прерывания
+	TIMSK0 = (1 << OCIE0A)|(1 << OCIE0B); // разрешить прерывания по таймеру
+	set_sleep_mode (SLEEP_MODE_IDLE);
+	sei ();		// глобальное разрешение прерываний
+	for (;;)
+		sleep_enable ();	// в спячку!
+}
+
