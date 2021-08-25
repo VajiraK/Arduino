@@ -6,14 +6,15 @@ WaterHeater_V2
 bool boiled = false;
 byte dis_update_count = 0;
 byte progress = 0;
-int const limit = 3;
-int const dis_update_point = 1;
+int const heatup_duration = 30;
+int const dis_update_point = 3;
 int const pause_relay = 1000;
-int const pause_led = 1000;
+int const pause_dot = 1000;
+int const anim_speed = 300;
 int const dataPin = 0;
 int const latchPin = 1;
 int const clockPin = 2;
-int const pin_led = 3;
+int const pin_dot = 3;
 int const pin_relay = 4;
 
 //---------------------------------------
@@ -23,10 +24,11 @@ void setup()
   pinMode(dataPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
   pinMode(pin_relay, OUTPUT);
-  pinMode(pin_led, OUTPUT);
+  pinMode(pin_dot, OUTPUT);
 }
 //---------------------------------------
 void loop() {
+  printNum(0);
   digitalWrite(pin_relay, HIGH);
   WaitForHeatUp();
   digitalWrite(pin_relay, LOW);
@@ -35,12 +37,12 @@ void loop() {
 //---------------------------------------
 void WaitForHeatUp()
 {
-  for(int i=0;i<limit;i++)
+  for(int i=0;i<heatup_duration;i++)
   {
     UpdateDisplay();
-    digitalWrite(pin_led, HIGH); 
+    digitalWrite(pin_dot, HIGH); 
     delay(pause_relay);
-    digitalWrite(pin_led, LOW);
+    digitalWrite(pin_dot, LOW);
     delay(pause_relay);
   }
 }
@@ -50,31 +52,31 @@ void AfterHeatUp()
   while(true)
   {
     printNum(0);
-    digitalWrite(pin_led, HIGH); 
-    delay(pause_led);
-    digitalWrite(pin_led, LOW);
-    delay(pause_led);
+    digitalWrite(pin_dot, HIGH); 
+    delay(pause_dot);
+    digitalWrite(pin_dot, LOW);
+    delay(pause_dot);
   }
 }
 //---------------------------------------
 void RoundAndRound()
 {
-  digitalWrite(pin_led, HIGH);
+  digitalWrite(pin_dot, HIGH);
   
   while(true)
   {
     printNum(B11101111);
-    delay(200);
+    delay(anim_speed);
     printNum(B11110111);
-    delay(200);
+    delay(anim_speed);
     printNum(B11111011);
-    delay(200);
+    delay(anim_speed);
     printNum(B01111111);
-    delay(200);
+    delay(anim_speed);
     printNum(B10111111);
-    delay(200);
+    delay(anim_speed);
     printNum(B11011111);
-    delay(200);
+    delay(anim_speed);
   }
 }
 //---------------------------------------
