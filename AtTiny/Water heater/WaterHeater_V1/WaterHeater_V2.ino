@@ -6,32 +6,32 @@ WaterHeater_V2
 bool boiled = false;
 byte dis_update_count = 0;
 byte progress = 0;
-int const heatup_duration = 30;
-int const dis_update_point = 3;
+int const heatup_duration = 5;
+int const dis_update_point = 1;
 int const pause_relay = 1000;
 int const pause_dot = 1000;
 int const anim_speed = 300;
-int const dataPin = 0;
-int const latchPin = 1;
-int const clockPin = 2;
-int const pin_dot = 3;
-int const pin_relay = 4;
+int const dataPin = PB0;//pin 0
+int const latchPin = PB1;//pin 1
+int const clockPin = PB2;//pin 2
+int const pin_dot = PB3;//pin 3
+int const pin_relay = PB4;//pin 4
 
 //---------------------------------------
 void setup()
 {
-  pinMode(latchPin, OUTPUT);
-  pinMode(dataPin, OUTPUT);
-  pinMode(clockPin, OUTPUT);
-  pinMode(pin_relay, OUTPUT);
-  pinMode(pin_dot, OUTPUT);
+  DDRB |= (1 << latchPin);//pinMode(latchPin, OUTPUT);
+  DDRB |= (1 << dataPin);//pinMode(dataPin, OUTPUT);
+  DDRB |= (1 << clockPin);//pinMode(clockPin, OUTPUT);
+  DDRB |= (1 << pin_relay);//pinMode(pin_relay, OUTPUT);
+  DDRB |= (1 << pin_dot);//pinMode(pin_dot, OUTPUT);
 }
 //---------------------------------------
 void loop() {
-  printNum(0);
-  digitalWrite(pin_relay, HIGH);
+  printNum(progress);
+  PORTB |= (1 << pin_relay);//digitalWrite(pin_relay, HIGH);
   WaitForHeatUp();
-  digitalWrite(pin_relay, LOW);
+  PORTB &= ~(1 << pin_relay);//digitalWrite(pin_relay, LOW);
   RoundAndRound();
 }
 //---------------------------------------
@@ -40,28 +40,16 @@ void WaitForHeatUp()
   for(int i=0;i<heatup_duration;i++)
   {
     UpdateDisplay();
-    digitalWrite(pin_dot, HIGH); 
+    PORTB |= (1 << pin_dot);//digitalWrite(pin_dot, HIGH); 
     delay(pause_relay);
-    digitalWrite(pin_dot, LOW);
+    PORTB &= ~(1 << pin_dot);//digitalWrite(pin_dot, LOW);
     delay(pause_relay);
-  }
-}
-//---------------------------------------
-void AfterHeatUp()
-{
-  while(true)
-  {
-    printNum(0);
-    digitalWrite(pin_dot, HIGH); 
-    delay(pause_dot);
-    digitalWrite(pin_dot, LOW);
-    delay(pause_dot);
   }
 }
 //---------------------------------------
 void RoundAndRound()
 {
-  digitalWrite(pin_dot, HIGH);
+  PORTB |= (1 << pin_dot);//digitalWrite(pin_dot, HIGH);
   
   while(true)
   {
@@ -87,9 +75,9 @@ void UpdateDisplay()
   
 	dis_update_count++;
   
-  	if(dis_update_count == dis_update_point)
+  	if(dis_update_count == dis_update_point && progress < 9)
     {
-      printNum(progress++);
+      printNum(++progress);
       dis_update_count = 0;
     }
 }
@@ -130,7 +118,7 @@ void printNum(byte n)
     break;
   }
 
-  digitalWrite(latchPin, LOW);
+  PORTB &= ~(1 << latchPin);//digitalWrite(latchPin, LOW);
   shiftOut(dataPin, clockPin, MSBFIRST, n);
-  digitalWrite(latchPin, HIGH);
+  PORTB |= (1 << latchPin);//digitalWrite(latchPin, HIGH);
 }
