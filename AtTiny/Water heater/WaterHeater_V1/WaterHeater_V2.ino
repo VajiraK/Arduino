@@ -6,11 +6,11 @@ WaterHeater_V2
 bool boiled = false;
 byte dis_update_count = 0;
 byte progress = 0;
-int const heatup_duration = 5;
-int const dis_update_point = 1;
+int const heatup_duration = 84;
+int const dis_update_allow = 8;
 int const pause_relay = 1000;
 int const pause_dot = 1000;
-int const anim_speed = 300;
+int const anim_speed = 200;
 int const dataPin = PB0;//pin 0
 int const latchPin = PB1;//pin 1
 int const clockPin = PB2;//pin 2
@@ -75,7 +75,7 @@ void UpdateDisplay()
   
 	dis_update_count++;
   
-  	if(dis_update_count == dis_update_point && progress < 9)
+  	if(dis_update_count == dis_update_allow && progress < 9)
     {
       printNum(++progress);
       dis_update_count = 0;
