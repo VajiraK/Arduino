@@ -1,7 +1,26 @@
 /*
 WaterHeater_V3
 26 Aug 2021
+
+Measured 
+0.5L - 1.43 - 103s
+1.0L - 3.20 - 200s
+1.5L - 4.45 - 285s
+
+Predictions
+y = 37569940 + (-21.4057 - 37569940)/(1 + (x/3618522)^0.7972852)
+
+1 - 72s
+2 - 167s
+3 - 214s
+4 - 285s
+
+0.375	- 80s
+0.75 	- 155s
+1.125 	- 222s
+1.5 	- 285s
 */
+
 int const anim_speed = 200;
 #define dataPin PB0
 #define latchPin PB1
