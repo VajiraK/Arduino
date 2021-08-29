@@ -1,5 +1,8 @@
 /*
 WaterHeater_V3
+Sketch uses 722 bytes (70%) of program storage space. Maximum is 1024 bytes.
+Global variables use 15 bytes (23%) of dynamic memory, 
+leaving 49 bytes for local variables. Maximum is 64 bytes.
 26 Aug 2021
 
 Measured 
@@ -11,18 +14,13 @@ Measured
 Predictions - https://mycurvefit.com/
 y = 37569940 + (-21.4057 - 37569940)/(1 + (x/3618522)^0.7972852)
 
-1 - 72s
-2 - 167s
-3 - 214s
-4 - 285s
-
-0.375	- 80s
-0.75 	- 155s
-1.125 	- 222s
-1.5 	- 285s
+0.375  - 80s
+0.75  - 155s
+1.125   - 222s
+1.5   - 285s
 */
 
-int const anim_speed = 200;
+#define anim_speed 200
 #define dataPin PB0
 #define latchPin PB1
 #define pin_interrupt PB2
@@ -31,6 +29,7 @@ int const anim_speed = 200;
 #define clockPin PB5
 #define MODE_START 0
 #define MODE_STOP 5
+#define BUTTON_PIN_BITMASK B00000100
 
 byte mode = MODE_START;
 int active_duration = 0;
@@ -46,11 +45,21 @@ void setup()
   DDRB |= (1 << clockPin);//pinMode(clockPin, OUTPUT);
   DDRB |= (1 << pin_relay);//pinMode(pin_relay, OUTPUT);
   DDRB |= (1 << pin_dot);//pinMode(pin_dot, OUTPUT);
+  
   //Setup button interrupt
-  pinMode(pin_interrupt, INPUT_PULLUP);
-  attachInterrupt(0, ButtonPressed, FALLING);
+  SetPinChangeInterrupt();
+  
   //Show zero
   printNum(0);
+}
+//---------------------------------------
+void SetPinChangeInterrupt()
+{
+  //cli();// Disable interrupts during setup
+  pinMode(pin_interrupt, INPUT_PULLUP);
+  GIMSK |= (1 << PCIE);//turns on pin change interrupts
+  PCMSK |= (1 << PCINT2);//Interup pin is PB2
+  //sei();//last line of setup - enable interrupts after setup
 }
 //---------------------------------------
 void loop() 
@@ -115,19 +124,19 @@ void printNum(byte n)
   switch(n)
   {
     case 0:
-    	n = B00000011;
+      n = B00000011;
     break;
     case 1:
-    	n = B10011111;
+      n = B10011111;
     break;
     case 2:
-    	n = B00100101;
+      n = B00100101;
     break;
     case 3:
-    	n = B00001101;
+      n = B00001101;
     break;
     case 4:
-    	n = B10011001;
+      n = B10011001;
     break;
   }
 
@@ -139,7 +148,7 @@ void printNum(byte n)
 void ButtonPressed() {
   if(mode == MODE_START)
   {//First press - Default mode 2
-	  mode = 2;
+    mode = 2;
   }
   else if(mode == MODE_STOP)
   {//Re-heat
@@ -151,7 +160,7 @@ void ButtonPressed() {
     mode++;
     //Wraparound
     if(mode > 4)
-    	mode = 1;
+      mode = 1;
   }
 
   InitializeMode();
@@ -162,34 +171,12 @@ void InitializeMode()
   active_duration = heatup_durations[mode - 1];
   printNum(mode);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//---------------------------------------
+ISR (PCINT0_vect)
+{//Raise for both H/L
+  //Get button pin state
+  byte bState = (PINB >> pin_interrupt & BUTTON_PIN_BITMASK >> pin_interrupt);
+  //int button = digitalRead(pin_interrupt);
+  if(bState == LOW)
+    ButtonPressed();
+}
