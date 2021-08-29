@@ -3,11 +3,12 @@ WaterHeater_V3
 26 Aug 2021
 
 Measured 
+0.4L - 1.20 - 80s
 0.5L - 1.43 - 103s
 1.0L - 3.20 - 200s
 1.5L - 4.45 - 285s
 
-Predictions
+Predictions - https://mycurvefit.com/
 y = 37569940 + (-21.4057 - 37569940)/(1 + (x/3618522)^0.7972852)
 
 1 - 72s
