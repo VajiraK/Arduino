@@ -9,27 +9,28 @@ Measured
 0.4L - 1.20 - 80s
 0.5L - 1.43 - 103s
 1.0L - 3.20 - 200s
-1.5L - 4.45 - 285s,260s
+1.5L - 4.45 - 285s
 
 Predictions - https://mycurvefit.com/
 y = 37569940 + (-21.4057 - 37569940)/(1 + (x/3618522)^0.7972852)
 
-0.375 - 80s
+0.375  - 80s
 0.75  - 155s
-1.125 - 222s
-1.5   - 285s,260s
+1.125   - 222s
+1.5   - 285s
 */
 
 #define anim_speed 200
 #define dataPin PB0
 #define latchPin PB1
-#define pin_interrupt PB2
-#define pin_dot PB3
+#define clockPin PB2
+#define pin_interrupt PB3
+//#define pin_dot PB3
 #define pin_relay PB4
-#define clockPin PB5
+//#define clockPin PB5//Don't use reset pin
 #define MODE_START 0
 #define MODE_STOP 5
-#define BUTTON_PIN_BITMASK B00000100
+#define BUTTON_PIN_BITMASK B00001000
 
 byte mode = MODE_START;
 int active_duration = 0;
@@ -44,7 +45,7 @@ void setup()
   DDRB |= (1 << dataPin);//pinMode(dataPin, OUTPUT);
   DDRB |= (1 << clockPin);//pinMode(clockPin, OUTPUT);
   DDRB |= (1 << pin_relay);//pinMode(pin_relay, OUTPUT);
-  DDRB |= (1 << pin_dot);//pinMode(pin_dot, OUTPUT);
+  //DDRB |= (1 << pin_dot);//pinMode(pin_dot, OUTPUT);
   
   //Setup button interrupt
   SetPinChangeInterrupt();
@@ -58,7 +59,7 @@ void SetPinChangeInterrupt()
   //cli();// Disable interrupts during setup
   pinMode(pin_interrupt, INPUT_PULLUP);
   GIMSK |= (1 << PCIE);//turns on pin change interrupts
-  PCMSK |= (1 << PCINT2);//Interup pin is PB2
+  PCMSK |= (1 << PCINT3);//Interup pin is PB3
   //sei();//last line of setup - enable interrupts after setup
 }
 //---------------------------------------
@@ -84,16 +85,16 @@ void WaitForHeatUp()
 {
   for(int i=0;i<active_duration;i++)
   {
-    PORTB |= (1 << pin_dot);
+    //PORTB |= (1 << pin_dot);
     delay(pause_relay);
-    PORTB &= ~(1 << pin_dot);
+    //PORTB &= ~(1 << pin_dot);
     delay(pause_relay);
   }
 }
 //---------------------------------------
 void RoundAndRound()
 {
-  PORTB |= (1 << pin_dot);
+  //PORTB |= (1 << pin_dot);
   
   while(true)
   {
