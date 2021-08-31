@@ -1,8 +1,10 @@
 /*
 WaterHeater_V3
-Sketch uses 722 bytes (70%) of program storage space. Maximum is 1024 bytes.
-Global variables use 15 bytes (23%) of dynamic memory, 
-leaving 49 bytes for local variables. Maximum is 64 bytes.
+Sketch uses 778 bytes (75%) of program storage space. Maximum is 1024 bytes.
+Global variables use 11 bytes (17%) of dynamic memory,
+leaving 53 bytes for local variables. Maximum is 64 bytes.
+
+
 26 Aug 2021
 
 Measured 
@@ -25,18 +27,17 @@ y = 37569940 + (-21.4057 - 37569940)/(1 + (x/3618522)^0.7972852)
 #define latchPin PB1
 #define clockPin PB2
 #define pin_interrupt PB3
-//#define pin_dot PB3
 #define pin_relay PB4
 //#define clockPin PB5//Don't use reset pin
 #define MODE_START 0
 #define MODE_STOP 5
 #define BUTTON_PIN_BITMASK B00001000
-
-byte mode = MODE_START;
-int active_duration = 0;
-int const heatup_durations[4] = {10, 20, 30, 40};
-int const pause_relay = 1000;
-int const pause_dot = 1000;
+#define PAUSE_RELAY 1000
+//volatile prevents compiler optimization
+volatile byte timer = 0; 
+volatile byte mode = MODE_START;
+volatile byte active_duration = 0;
+volatile byte const heatup_durations[4] = {80, 175, 195, 276};
 
 //---------------------------------------
 void setup()
@@ -45,22 +46,12 @@ void setup()
   DDRB |= (1 << dataPin);//pinMode(dataPin, OUTPUT);
   DDRB |= (1 << clockPin);//pinMode(clockPin, OUTPUT);
   DDRB |= (1 << pin_relay);//pinMode(pin_relay, OUTPUT);
-  //DDRB |= (1 << pin_dot);//pinMode(pin_dot, OUTPUT);
   
   //Setup button interrupt
   SetPinChangeInterrupt();
   
   //Show zero
   printNum(0);
-}
-//---------------------------------------
-void SetPinChangeInterrupt()
-{
-  //cli();// Disable interrupts during setup
-  pinMode(pin_interrupt, INPUT_PULLUP);
-  GIMSK |= (1 << PCIE);//turns on pin change interrupts
-  PCMSK |= (1 << PCINT3);//Interup pin is PB3
-  //sei();//last line of setup - enable interrupts after setup
 }
 //---------------------------------------
 void loop() 
@@ -84,18 +75,11 @@ void loop()
 void WaitForHeatUp()
 {
   for(int i=0;i<active_duration;i++)
-  {
-    //PORTB |= (1 << pin_dot);
-    delay(pause_relay);
-    //PORTB &= ~(1 << pin_dot);
-    delay(pause_relay);
-  }
+    delay(PAUSE_RELAY);
 }
 //---------------------------------------
 void RoundAndRound()
-{
-  //PORTB |= (1 << pin_dot);
-  
+{  
   while(true)
   {
     printNum(B11101111);
@@ -112,7 +96,7 @@ void RoundAndRound()
     delay(anim_speed);
     
     //Re-heating
-    if(mode == 1)
+    if(mode != MODE_STOP)
     {
       InitializeMode();
       return;
@@ -167,6 +151,15 @@ void ButtonPressed() {
   InitializeMode();
 }
 //---------------------------------------
+void SetPinChangeInterrupt()
+{
+  //cli();// Disable interrupts during setup
+  pinMode(pin_interrupt, INPUT_PULLUP);
+  GIMSK |= (1 << PCIE);//turns on pin change interrupts
+  PCMSK |= (1 << PCINT3);//Interup pin is PB3
+  //sei();//last line of setup - enable interrupts after setup
+}
+//---------------------------------------
 void InitializeMode()
 {
   active_duration = heatup_durations[mode - 1];
@@ -177,7 +170,34 @@ ISR (PCINT0_vect)
 {//Raise for both H/L
   //Get button pin state
   byte bState = (PINB >> pin_interrupt & BUTTON_PIN_BITMASK >> pin_interrupt);
-  //int button = digitalRead(pin_interrupt);
+  //We need timer-delay to avoid erraticbehavior when button slowly pushed
   if(bState == LOW)
-    ButtonPressed();
+    EnableTimer();
 }
+//---------------------------------------
+ISR(TIM0_COMPA_vect)
+{
+  timer++;
+  
+  if(timer == 25)
+  {
+  	ButtonPressed();
+    DisableTimer();
+  }
+}
+//---------------------------------------
+void EnableTimer()
+{
+  TCCR0A |= (1 << WGM01); // Set CTC mode on Timer 1
+  TIMSK0 |= (1 << OCIE0A); // Enable the Timer/Counter0 Compare Match A interrupt
+  TCCR0B = (1<<CS00) | (1<<CS02);//Set prescaler
+  //OCR0A = 125;// Set the output compare reg
+}
+//---------------------------------------
+void DisableTimer()
+{
+    TIMSK0 &= ~(1 << OCIE0A);
+    timer = 0;
+}
+
+
