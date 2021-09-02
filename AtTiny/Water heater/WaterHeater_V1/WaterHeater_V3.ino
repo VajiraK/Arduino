@@ -36,8 +36,8 @@ y = 37569940 + (-21.4057 - 37569940)/(1 + (x/3618522)^0.7972852)
 //volatile prevents compiler optimization
 volatile byte timer = 0; 
 volatile byte mode = MODE_START;
-volatile byte active_duration = 0;
-volatile byte const heatup_durations[4] = {80, 175, 195, 276};
+volatile int active_duration = 0;
+volatile int const heatup_durations[4] = {80, 175, 195, 276};
 
 //---------------------------------------
 void setup()
