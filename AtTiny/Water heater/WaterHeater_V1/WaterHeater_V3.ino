@@ -4,7 +4,6 @@ Sketch uses 778 bytes (75%) of program storage space. Maximum is 1024 bytes.
 Global variables use 11 bytes (17%) of dynamic memory,
 leaving 53 bytes for local variables. Maximum is 64 bytes.
 
-
 26 Aug 2021
 
 Measured 
@@ -170,7 +169,7 @@ ISR (PCINT0_vect)
 {//Raise for both H/L
   //Get button pin state
   byte bState = (PINB >> pin_interrupt & BUTTON_PIN_BITMASK >> pin_interrupt);
-  //We need timer-delay to avoid erraticbehavior when button slowly pushed
+  //We need timer-delay for button debouncing
   if(bState == LOW)
     EnableTimer();
 }
@@ -179,7 +178,7 @@ ISR(TIM0_COMPA_vect)
 {
   timer++;
   
-  if(timer == 25)
+  if(timer > 24)
   {
   	ButtonPressed();
     DisableTimer();
