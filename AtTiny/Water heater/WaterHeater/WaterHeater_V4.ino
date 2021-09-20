@@ -2,6 +2,7 @@
 WaterHeater_V4
 20 Sep 2021
 */
+
 const int 	sensorPin	=  A2;
 int const dataPin = PB0;//pin 0
 int const latchPin = PB1;//pin 1
@@ -28,11 +29,17 @@ void loop() {
   Bit 3 – ADIE: ADC Interrupt Enable
   Bits 2:0 – ADPS[2:0]: ADC Prescaler Select Bits*/
   ADCSRA = B11000110;
+
+  //Wait till Bit 4 – ADIF is set(complete ADC)
+  byte flag = 0;
+  do{
+  	flag = ADCSRA & B00010000;
+  }while(flag == 0);
   
   //ADCL must be read first
   byte _ADCL = ADCL;
   byte _ADCH = ADCH; 
-  
+
   //First half
   int rawData = 0;
   rawData |= _ADCH;
