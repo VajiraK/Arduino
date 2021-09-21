@@ -15,6 +15,51 @@ void setup() {
 }
 //---------------------------------------
 void loop() {
+
+  byte temp1 = getRightAdjustResult();
+  byte temp2 = getLeftAdjustResult();
+  printTwoDigits(temp1);
+  delay(1000);
+}
+//---------------------------------------
+byte getLeftAdjustResult(){
+  /*ADC Multiplexer Selection Register
+  Bit 6 – REFS0: Reference Selection Bit
+  Bit 5 – ADLAR: ADC Left Adjust Result
+  Bits 1:0 – MUX[1:0]: Analog Channel Selection Bits*/
+  ADMUX = B00100010;
+  
+  /*ADC Control and Status Register A
+  Bit 7 – ADEN: ADC Enable
+  Bit 6 – ADSC: ADC Start Conversion
+  Bit 5 – ADATE: ADC Auto Trigger Enable
+  Bit 4 – ADIF: ADC Interrupt Flag
+  Bit 3 – ADIE: ADC Interrupt Enable
+  Bits 2:0 – ADPS[2:0]: ADC Prescaler Select Bits*/
+  ADCSRA = B11000110;
+
+  //Wait till Bit 4 – ADIF is set(complete ADC)
+  byte flag = 0;
+  do{
+  	flag = ADCSRA & B00010000;
+  }while(flag == 0);
+  
+  //ADCL must be read first
+  byte _ADCL = ADCL;
+  byte _ADCH = ADCH; 
+
+  //First half
+  int rawData = 0;
+  rawData |= _ADCH;
+  rawData = rawData << 2;
+  //Second half
+  _ADCL = _ADCL >> 6;
+  rawData |= _ADCL;
+  
+  return toCelsius(rawData);
+}
+//---------------------------------------
+byte getRightAdjustResult(){
   /*ADC Multiplexer Selection Register
   Bit 6 – REFS0: Reference Selection Bit
   Bit 5 – ADLAR: ADC Left Adjust Result
@@ -45,12 +90,9 @@ void loop() {
   rawData |= _ADCH;
   rawData = rawData << 8;
   //Second half
-  rawData |= ADCL;
+  rawData |= _ADCL;
   
-  int temp = toCelsius(rawData);
-  printTwoDigits(temp);
-  
-  delay(1000);
+  return toCelsius(rawData);
 }
 //---------------------------------------
 //reads data, converts to degree celsius
