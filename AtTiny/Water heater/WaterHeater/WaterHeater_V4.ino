@@ -3,8 +3,11 @@ WaterHeater_V4
 20 Sep 2021
 */
 
-#define MAX_MASTER_COUNT 25
+#define MAX_MASTER_COUNT 250
 #define MAX_FINAL_COUNT 3
+#define MAX_STEP_COUNT 5
+#define THRESHOLD_TEMP 97
+
 #define STATUS_READY 0
 #define STATUS_STARTED 1
 #define STATUS_REACHED 2
@@ -19,6 +22,8 @@ WaterHeater_V4
 
 int masterCount = 0;
 byte finalCount = 0;
+byte stepCount = 0;
+byte currentStep = 0;
 int status = STATUS_READY;
 //---------------------------------------
 void setup() {
@@ -45,12 +50,13 @@ void setup() {
   ReadTemperature();
   
   //Give some time to stabilize ADC
-  delay(1000);
+  delay(100);
 }
 //---------------------------------------
 void loop() {
   
   masterCount++;
+  stepCount++;
   
   if(status == STATUS_READY)
   {//Turn on relay
@@ -64,14 +70,10 @@ void loop() {
 	  {//Bellow 97 Celsius
 		  byte temp = ReadTemperature();
 		  SetStatus(temp);
-		  //Get 10th position
-		  temp = temp/10;
-		  //We can only display one digit
-		  if(temp > 9) temp = 9;
-		  printNum(temp);
+		  StepHandler(temp);
 	  }
 	  else
-	  {//Above 97 Celsius
+	  {//Above THRESHOLD_TEMP Celsius
 		if(finalCount++ == MAX_FINAL_COUNT)
 		{
 			status = STATUS_STOPED;
@@ -88,12 +90,30 @@ void loop() {
   delay(1000);
 }
 //---------------------------------------
+void StepHandler(byte temp)
+{
+	//Get 10th position
+	temp = temp/10;
+	//We can only display one digit
+	if(temp > 9) 
+		temp = 9;
+	
+	if(temp != currentStep)
+	{//Reset step count
+		stepCount = 0;
+		currentStep = temp;
+	}
+	
+	printNum(temp);
+	
+}
+//---------------------------------------
 void SetStatus(byte temp)
 {
-  if(masterCount == MAX_MASTER_COUNT)
+  if((masterCount >= MAX_MASTER_COUNT) ||(stepCount >= MAX_STEP_COUNT))
 	status = STATUS_STOPED;//Something wrong - let's turn off.
 
-  if(temp > 97)
+  if(temp >= THRESHOLD_TEMP)
 	  status = STATUS_REACHED;
 }
 //---------------------------------------
