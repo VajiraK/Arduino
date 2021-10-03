@@ -3,19 +3,29 @@ WaterHeater_V4
 20 Sep 2021
 */
 
-#define MAX_MASTER_COUNT 285
+#define MAX_MASTER_COUNT 25
+#define MAX_FINAL_COUNT 3
+#define STATUS_READY 0
+#define STATUS_STARTED 1
+#define STATUS_REACHED 2
+#define STATUS_STOPED 3
 
-int const sensorPin	=  A2;
-int const dataPin = PB0;//pin 0
-int const latchPin = PB1;//pin 1
-int const clockPin = PB2;//pin 2
+#define anim_speed 200
+#define sensorPin A2
+#define dataPin PB0
+#define latchPin PB1
+#define clockPin PB2
+#define pin_relay PB3
 
 int masterCount = 0;
+byte finalCount = 0;
+int status = STATUS_READY;
 //---------------------------------------
 void setup() {
   DDRB |= (1 << latchPin);//pinMode(latchPin, OUTPUT);
   DDRB |= (1 << dataPin);//pinMode(dataPin, OUTPUT);
   DDRB |= (1 << clockPin);//pinMode(clockPin, OUTPUT);
+  DDRB |= (1 << pin_relay);//pinMode(pin_relay, OUTPUT);
   
   /*ADC Multiplexer Selection Register
   Bit 6 – REFS0: Reference Selection Bit
@@ -31,26 +41,68 @@ void setup() {
   Bit 3 – ADIE: ADC Interrupt Enable
   Bits 2:0 – ADPS[2:0]: ADC Prescaler Select Bits*/
   ADCSRA = B11000010;
+  
+  ReadTemperature();
+  
+  //Give some time to stabilize ADC
+  delay(1000);
 }
 //---------------------------------------
 void loop() {
   
-  if(masterCount++ == MAX_MASTER_COUNT)
+  masterCount++;
   
-  //ADC Start Conversion
-  ADCSRA |= (1 << ADSC); 
+  if(status == STATUS_READY)
+  {//Turn on relay
+	PORTB |= (1 << pin_relay);
+	status = STATUS_STARTED;
+  }
   
-  WaitForAdcComplete();
-
-  byte temp = getLeftAdjustResult();
-  temp = temp/10;
-  
-  if(temp > 9)
-    temp = 9;
-  
-  printNum(temp);
+  if(status != STATUS_STOPED)
+  {
+	  if(status != STATUS_REACHED)
+	  {//Bellow 97 Celsius
+		  byte temp = ReadTemperature();
+		  SetStatus(temp);
+		  //Get 10th position
+		  temp = temp/10;
+		  //We can only display one digit
+		  if(temp > 9) temp = 9;
+		  printNum(temp);
+	  }
+	  else
+	  {//Above 97 Celsius
+		if(finalCount++ == MAX_FINAL_COUNT)
+		{
+			status = STATUS_STOPED;
+			//Turn off relay
+			PORTB &= ~(1 << pin_relay);
+		}
+	  }
+  }
+  else
+  {
+	  RoundAndRound();
+  }
     
   delay(1000);
+}
+//---------------------------------------
+void SetStatus(byte temp)
+{
+  if(masterCount == MAX_MASTER_COUNT)
+	status = STATUS_STOPED;//Something wrong - let's turn off.
+
+  if(temp > 97)
+	  status = STATUS_REACHED;
+}
+//---------------------------------------
+byte ReadTemperature()
+{
+	  //ADC Start Conversion
+	  ADCSRA |= (1 << ADSC); 
+	  WaitForAdcComplete();
+	  return getLeftAdjustResult();
 }
 //---------------------------------------
 void WaitForAdcComplete()
@@ -85,6 +137,27 @@ float toCelsius(int raw) {
   volt /= 1024.0;
   float temp = (volt - 0.5) * 100;
   return temp;
+}
+//---------------------------------------
+void RoundAndRound()
+{
+  //PORTB |= (1 << pin_dot);
+  
+  while(true)
+  {
+    printNum(B11101111);
+    delay(anim_speed);
+    printNum(B11110111);
+    delay(anim_speed);
+    printNum(B11111011);
+    delay(anim_speed);
+    printNum(B01111111);
+    delay(anim_speed);
+    printNum(B10111111);
+    delay(anim_speed);
+    printNum(B11011111);
+    delay(anim_speed);
+  }
 }
 //---------------------------------------
 byte printNum(byte digits)
